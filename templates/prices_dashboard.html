@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Currency Price Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #111118;
+            --card: #16161f;
+            --border: #2a2a3a;
+            --accent: #00e5ff;
+            --accent2: #ff6b35;
+            --accent3: #a855f7;
+            --text: #e8e8f0;
+            --muted: #6b6b80;
+            --green: #00d68f;
+            --red: #ff4757;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Syne', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glow-blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.12;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .blob-1 { width: 500px; height: 500px; background: var(--accent3); top: -150px; right: -100px; }
+        .blob-2 { width: 400px; height: 400px; background: var(--accent); bottom: -100px; left: -100px; }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 48px 24px;
+        }
+
+        /* HEADER */
+        header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            margin-bottom: 56px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .logo-area {}
+
+        .logo-tag {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--accent);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        h1 {
+            font-size: clamp(28px, 5vw, 48px);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -1px;
+        }
+
+        h1 span {
+            -webkit-text-stroke: 1px var(--accent);
+            color: transparent;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 214, 143, 0.08);
+            border: 1px solid rgba(0, 214, 143, 0.25);
+            color: var(--green);
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 1px;
+            padding: 8px 16px;
+            border-radius: 100px;
+        }
+
+        .pulse {
+            width: 7px; height: 7px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+
+        /* SECTION TITLE */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .section-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .section-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 2px;
+        }
+
+        /* LATEST PRICES GRID */
+        .prices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 64px;
+        }
+
+        .price-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s, transform 0.2s;
+            animation: fadeUp 0.5s ease both;
+        }
+
+        .price-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-3px);
+        }
+
+        .price-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--accent3));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .price-card:hover::before { opacity: 1; }
+
+        .currency-symbol {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .currency-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        .price-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 12px;
+            word-break: break-all;
+        }
+
+        .price-time {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        /* EMPTY STATE */
+        .empty-state {
+            background: var(--card);
+            border: 1px dashed var(--border);
+            border-radius: 16px;
+            padding: 48px;
+            text-align: center;
+            margin-bottom: 64px;
+        }
+        .empty-state p { color: var(--muted); font-family: 'Space Mono', monospace; font-size: 13px; }
+
+        /* HISTORY SECTION */
+        .history-block {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 48px;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px 28px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .history-title {
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .history-title span {
+            color: var(--accent);
+            font-family: 'Space Mono', monospace;
+        }
+
+        .badge {
+            background: rgba(0,229,255,0.08);
+            border: 1px solid rgba(0,229,255,0.2);
+            color: var(--accent);
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            padding: 4px 12px;
+            border-radius: 100px;
+        }
+
+        /* TABLE */
+        .table-wrap { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead tr {
+            background: rgba(255,255,255,0.02);
+        }
+
+        th {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--muted);
+            text-transform: uppercase;
+            padding: 14px 28px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 14px 28px;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(42,42,58,0.5);
+            transition: background 0.2s;
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        tbody tr:hover td { background: rgba(0,229,255,0.03); }
+
+        .td-currency { color: var(--accent); letter-spacing: 1px; }
+        .td-price { color: var(--text); font-weight: 700; }
+        .td-time { color: var(--muted); font-size: 11px; }
+
+        /* ERROR BLOCK */
+        .error-block {
+            background: rgba(255,71,87,0.07);
+            border: 1px solid rgba(255,71,87,0.3);
+            color: var(--red);
+            border-radius: 12px;
+            padding: 16px 24px;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* ENDPOINTS REFERENCE */
+        .endpoints {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 32px;
+            margin-bottom: 40px;
+        }
+
+        .endpoint-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .endpoint-row:last-child { border-bottom: none; }
+
+        .method {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            letter-spacing: 1px;
+            background: rgba(0,229,255,0.1);
+            color: var(--accent);
+            border: 1px solid rgba(0,229,255,0.2);
+            flex-shrink: 0;
+        }
+
+        .endpoint-path {
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            color: var(--text);
+            flex: 1;
+        }
+
+        .endpoint-desc {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        /* FOOTER */
+        footer {
+            text-align: center;
+            padding: 32px 0 0;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 1px;
+        }
+
+        footer strong { color: var(--accent); }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Stagger cards */
+        .price-card:nth-child(1) { animation-delay: 0.05s; }
+        .price-card:nth-child(2) { animation-delay: 0.10s; }
+        .price-card:nth-child(3) { animation-delay: 0.15s; }
+        .price-card:nth-child(4) { animation-delay: 0.20s; }
+        .price-card:nth-child(5) { animation-delay: 0.25s; }
+        .price-card:nth-child(6) { animation-delay: 0.30s; }
+    </style>
+</head>
+<body>
+
+<div class="glow-blob blob-1"></div>
+<div class="glow-blob blob-2"></div>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <header>
+        <div class="logo-area">
+            <div class="logo-tag">// crypto tracker v1.0</div>
+            <h1>Currency <span>Prices</span></h1>
+        </div>
+        <div class="status-pill">
+            <div class="pulse"></div>
+            API RUNNING
+        </div>
+    </header>
+
+    <!-- ── SECTION 1: Latest Prices ── -->
+    <div class="section-header">
+        <span class="section-label">01 / Latest</span>
+        <div class="section-line"></div>
+    </div>
+    <div class="section-title" style="margin-bottom:24px;">Latest Prices</div>
+
+    {# Check for error in latest prices response #}
+    {% if latest_prices is defined and latest_prices.error is defined %}
+        <div class="error-block">
+            ⚠ {{ latest_prices.error }}
+        </div>
+
+    {# If we have a list of prices #}
+    {% elif latest_prices is defined and latest_prices | length > 0 %}
+        <div class="prices-grid">
+            {% for item in latest_prices %}
+            <div class="price-card">
+                <div class="currency-symbol">
+                    <div class="currency-dot"></div>
+                    {{ item.currency | upper }}
+                </div>
+                <div class="price-value">{{ item.price }}</div>
+                <div class="price-time">{{ item.created_at }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+    {# Empty #}
+    {% else %}
+        <div class="empty-state">
+            <p>No price data available yet.</p>
+        </div>
+    {% endif %}
+
+
+    <!-- ── SECTION 2: Price History ── -->
+    <div class="section-header">
+        <span class="section-label">02 / History</span>
+        <div class="section-line"></div>
+    </div>
+
+    {# history_data is the response from /prices/history/{currency} #}
+    {% if history_data is defined %}
+
+        {% if history_data.error is defined %}
+            <div class="error-block">
+                ⚠ {{ history_data.error }}
+            </div>
+
+        {% else %}
+            <div class="history-block">
+                <div class="history-header">
+                    <div>
+                        <div class="history-title">
+                            Price History — <span>{{ history_data.currency | upper }}</span>
+                        </div>
+                    </div>
+                    <div class="badge">{{ history_data.total_records }} records</div>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Currency</th>
+                                <th>Price</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in history_data.prices %}
+                            <tr>
+                                <td class="td-time">{{ loop.index }}</td>
+                                <td class="td-currency">{{ entry.currency | upper }}</td>
+                                <td class="td-price">{{ entry.price }}</td>
+                                <td class="td-time">{{ entry.created_at }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+
+    {% endif %}
+
+
+    <!-- ── SECTION 3: Endpoints Reference ── -->
+    <div class="section-header">
+        <span class="section-label">03 / API</span>
+        <div class="section-line"></div>
+    </div>
+    <div class="section-title" style="margin-bottom:24px;">Endpoints</div>
+
+    <div class="endpoints">
+        <div class="endpoint-row">
+            <span class="method">GET</span>
+            <span class="endpoint-path">/</span>
+            <span class="endpoint-desc">Health check — API running status</span>
+        </div>
+        <div class="endpoint-row">
+            <span class="method">GET</span>
+            <span class="endpoint-path">/prices/latest</span>
+            <span class="endpoint-desc">Returns the latest price for each currency</span>
+        </div>
+        <div class="endpoint-row">
+            <span class="method">GET</span>
+            <span class="endpoint-path">/prices/history/{currency}</span>
+            <span class="endpoint-desc">Returns all historical prices for a specific currency</span>
+        </div>
+    </div>
+
+
+    <footer>
+        Built with <strong>FastAPI</strong> + <strong>PostgreSQL</strong> · Task3 DB
+    </footer>
+
+</div>
+</body>
+</html>
